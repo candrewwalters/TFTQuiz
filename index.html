@@ -1,0 +1,631 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFT Quiz</title>
+</head>
+
+<link href='https://fonts.googleapis.com/css?family=Almendra' rel='stylesheet'>
+
+<style>
+
+
+body {
+  background-image: url('art/scroll1.jpg');
+  background-repeat: no-repeat;
+  background-position: top left; /* Or `center center` */
+  background-size: 100vw auto; /* Scale to full width, keep aspect ratio */
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+
+#contentSpace {
+
+  position: absolute;
+  top: 12vw;
+  left: 50%;
+  transform: translate(-50%, 0%);
+  width: 70vw;
+  height: 40vw;
+  transition: opacity 0.5s ease-in-out;
+  font-family: 'Almendra';
+  /* font-size: 2.4vh; */
+  font-size: 2vw;
+  color: darkbrown;
+
+
+}
+
+
+#instructions {
+
+  position: absolute;
+  top: 50vw;
+  left: 50%;
+  transform: translate(-50%, 0%);
+  width: 50vw;
+  height: 10vw;
+  transition: opacity 0.5s ease-in-out;
+  font-family: 'Almendra';
+  font-size: 1.5vw;
+  color: darkbrown;
+
+}
+
+
+
+#navbar {
+
+  position: absolute;
+  top: 54vw;
+  left: 50%;
+  transform: translate(-50%, 0%);
+  width: 50vw;
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center; /* Centers vertically */
+
+}
+
+
+.hidden {
+  opacity: 0.1;
+}
+
+
+  #question {
+  }
+
+  .questionText {
+    position: absolute;
+    top: 10%;
+    right:0;
+    left: 0;
+    height: 30%;
+  }
+
+  .answer{
+    position: absolute;
+    right:25%;
+    left: 5%;
+    height: 15%;
+    width: 50%;
+    display: flex;
+    align-items: center;
+  }
+
+  .answer0 {
+    top: 30%;
+
+  }
+
+  .answer1 {
+    top: 45%;
+  }
+
+  .answer2 {
+    top: 60%;
+
+  }
+
+  .answer3 {
+    top: 75%;
+
+  }
+
+
+  .incidental {
+    position: absolute;
+    top: 40%;
+    bottom: 0;
+    left: 75%;
+    right: 0;
+    width: 25%;
+    filter: sepia(100%);
+
+  }
+
+  .incidental img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image fills the div while maintaining aspect ratio */
+
+  }
+
+.medievalButton {
+
+border: double brown;
+text-align: center;
+padding: 0.4vh 0.6vh;
+display: inline-block;
+border-radius: 7px;
+white-space: nowrap;
+box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3); /* Adds a subtle shadow */
+transition: box-shadow 0.2s ease-in-out; /* Smooth effect on hover */
+}
+
+.medievalButton:active {
+    transform: translate( 2px, 2px);
+
+}
+
+
+.arrow-button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 10px;
+  filter: sepia(100%) brightness(50%);
+  opacity: 0;
+}
+
+.arrow-button img {
+  width: 15vw;
+  height: auto;
+}
+
+/* Left arrow: No change needed */
+.arrow-button.left img {
+}
+
+/* Right arrow: Flip horizontally */
+.arrow-button.right img {
+  transform: scaleX(-1);
+}
+
+
+.selectedAnswerPointer {
+
+  height: 5vw;
+  position:absolute;
+  left: 9vw;
+  transform: rotate(10deg);
+  top: -10vw;
+  transition: top 0.5s ease-in-out;
+
+}
+
+</style>
+
+<script src="questions.js"></script>
+
+<script>
+
+//I am writing a quiz js app for a ttfrpg. I want an array of 10 question objects. Each object should contain a question element, a right answer element, three wrong answer elements, and a silly answer element. The questions should be based on the following text:
+
+
+
+
+function replaceContent(newContent) {
+
+const div = document.getElementById("contentSpace");
+
+  // Fade out
+  div.classList.add("hidden");
+
+  setTimeout(() => {
+  // Change content after fade-out
+  div.innerHTML = newContent;
+
+  // Fade in
+  div.classList.remove("hidden");
+  }, 500); // Matches the transition duration (0.5s)
+
+}
+
+function initApp() {
+
+  replaceContent( document.getElementById('welcomeDiv').innerHTML );
+
+  document.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" || event.key === "ArrowRight" || event.key === "Tab" ) {
+
+        if ( currentQuestion == -1 ) {
+          startQuiz();
+        } else {
+          gotoQuestion( currentQuestion + 1 );
+        }
+      } else if ( event.key === "ArrowLeft" ) {
+          gotoQuestion( currentQuestion - 1 );
+      } else if ( event.key === "1" ) {
+          selectAnswer( 0);
+      } else if ( event.key === "2" ) {
+          selectAnswer( 1 );
+      } else if ( event.key === "3" ) {
+          selectAnswer( 2 );
+      } else if ( event.key === "4" ) {
+          selectAnswer( 3 );
+      }
+  });
+
+  currentQuestion = -1;
+
+}
+
+function displayWelcome() {
+
+//  document.getElementById('contentSpace').innerHTML = document.getElementById('welcomeDiv').innerHTML;
+  document.getElementById('welcomeDiv').classList.remove("hidden");
+
+}
+
+
+function startQuiz() {
+
+  generateQuiz();
+
+  document.getElementById('instructions').style.opacity = 0;
+
+  gotoQuestion(0);
+
+}
+
+function generateQuiz() {
+
+  quizNumbers=[];
+
+  while (quizNumbers.length < 10) {
+    let index = Math.floor(Math.random() * quizQuestions.length);
+    if (!quizNumbers.includes(index)) {
+      quizNumbers.push(index);
+    }
+  }
+
+  quiz = [];
+
+  for ( let i = 0; i < 10; i++ ) {
+
+    quiz.push({
+      questionNumber: quizNumbers[i],
+      question: quizQuestions[ quizNumbers[i] ].question,
+      answers: [ ...quizQuestions[ quizNumbers[i] ].wrongAnswers, quizQuestions[ quizNumbers[i] ].sillyAnswer ]
+    });
+
+//    console.log( quiz[ i ].answers );
+
+    quiz[ i ].answers = quiz[ i ].answers.sort(() => Math.random() - 0.5);
+
+//    console.log( quiz[ i ].answers );
+
+
+    quiz[ i ].correctAnswer = Math.floor( Math.random() * 4 );
+
+    quiz[ i ].answers[ quiz[ i ].correctAnswer ] = quizQuestions[ quiz[ i ].questionNumber ].rightAnswer;
+
+//    console.log( quiz[ i ].answers );
+
+    quiz[ i ].selectedAnswer = -1;
+
+    quiz[i].incidental = Math.floor( Math.random() * 98 );
+
+  }
+
+  ensureUniqueIncidentals( quiz );
+
+  currentQuestion = 0;
+
+  gotoQuestion(currentQuestion);
+
+
+
+}
+
+function gotoQuestion( qNumber ) {
+
+  if ( qNumber < 0 || qNumber > 10 ) { return; }
+
+  if ( qNumber === 10 ) {
+    currentQuestion = 10;
+    return showResult();
+  }
+
+  if ( qNumber == 0 ) {
+    document.getElementById('backButton').style.opacity = 0.1;
+    document.getElementById('forwardButton').style.opacity = 1;
+  } else {
+    document.getElementById('backButton').style.opacity = 1;
+    document.getElementById('forwardButton').style.opacity = 1;
+  }
+
+  document.getElementById('questionText').innerHTML = quiz[qNumber].question;
+
+  displayAnswers(qNumber);
+
+
+  document.getElementById('incidental').innerHTML = '<img src="incidental/Unknown-' + quiz[qNumber].incidental + '.png">';
+
+  currentQuestion = qNumber;
+
+//  replaceContent( document.getElementById('questionDiv').innerHTML );
+
+  replaceContent( removeIdsFromHTMLString( 'questionDiv') );
+
+//console.log( 'currentQuestion is now ' + currentQuestion );
+}
+
+function displayAnswers(qNumber) {
+
+  for ( let i = 0; i < 4; i++ ) {
+
+    document.getElementById('answer'+i).innerHTML = quiz[qNumber].answers[i];
+
+    // console.log(i, typeof i, quiz[qNumber].selectedAnswer, typeof quiz[qNumber].selectedAnswer);
+    // console.log( i=== quiz[ qNumber ].selectedAnswer );
+    //
+    // answerHTML='<img src="art/pointer.png" style="height: 50%; filter: sepia(100%); ';
+    // if ( quiz[ qNumber ].selectedAnswer === i ) {
+    //   answerHTML += 'opacity: 1;';
+    //   console.log('hi');
+    // } else {
+    //   answerHTML += 'opacity: 0; ';
+    // }
+    //
+    // answerHTML += 'transform: rotate(10deg);">' + quiz[qNumber].answers[i];
+    //
+    // document.getElementById('answer'+i).innerHTML = answerHTML;
+
+//    replaceContent( removeIdsFromHTMLString( 'questionDiv') );
+
+  }
+
+  if ( quiz[ qNumber ].selectedAnswer > -1 ) {
+
+    document.getElementById('selectedAnswerPointer').style.top = ( 25 + ( quiz[ qNumber ].selectedAnswer * 6 ) ) + 'vw';
+
+
+  } else {
+
+    hidePointer();
+  }
+
+
+
+}
+
+function hidePointer() {
+
+  document.getElementById('selectedAnswerPointer').style.transition = 'none';
+
+  // reading this value forces a "reflow" and thus makes the above line take effect.
+  document.getElementById('selectedAnswerPointer').offsetHeight;
+
+  document.getElementById('selectedAnswerPointer').style.top = '-6vw';
+
+  setTimeout(() => {
+
+    document.getElementById('selectedAnswerPointer').style.transition = 'top 0.5s ease-in-out';
+
+  }, 0 );
+
+}
+
+
+function selectAnswer( which ) {
+
+//  console.log( currentQuestion,which);
+
+  let temp = quiz[ currentQuestion ].selectedAnswer;
+
+  quiz[ currentQuestion ].selectedAnswer = which;
+
+  displayAnswers( currentQuestion );
+
+  // if ( temp === -1 ) {
+  //   gotoQuestion( which + 1 );
+  // }
+
+}
+
+
+function removeIdsFromHTMLString(divId) {
+    const div = document.getElementById(divId);
+    if (!div) return '';
+
+    // Create a temporary container and set its innerHTML
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = div.innerHTML;
+
+    // Remove all id attributes
+    tempContainer.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+
+    // Return the modified innerHTML as a string
+    return tempContainer.innerHTML;
+}
+
+function switchQuestion( newQuestion ) {
+
+  currentQuestion = newQuestion;
+  gotoQuestion( newQuestion );
+
+}
+
+function showResult() {
+
+  const fantasyAppraisals = [
+      "A lowly peasant, utterly lost in the shadows of ignorance.",
+      "A bumbling squire, barely grasping the ways of the world.",
+      "A fledgling apprentice, struggling to read the ancient tomes.",
+      "A wandering rogue, surviving on wit more than wisdom.",
+      "An aspiring knight, competent but still rough around the edges.",
+      "A seasoned adventurer, respected but not yet renowned.",
+      "A battle-hardened warrior, skilled and well-versed in lore.",
+      "A master of the craft, feared by foes and admired by allies.",
+      "A legendary hero, known in every tavern tale and bard’s song.",
+      "A mythic champion, whose name is etched in the annals of history!",
+      "A god among mortals, spoken of in hushed reverence by kings and sages!"
+  ];
+
+
+  hidePointer();
+
+  document.getElementById('forwardButton').style.opacity = 0.1;
+
+  rightAnswers = 0;
+
+  document.getElementById('resultDiv').innerHTML = '<br>';
+
+  for ( let i = 0; i < 10; i++ ) {
+
+    let nextLine = '<span onclick="gotoQuestion(' + i + ')">';
+
+    nextLine += '#' + (i+1) +' ';
+
+    if ( quiz[i].selectedAnswer == quiz[i].correctAnswer ) {
+
+      nextLine += '✶';
+      rightAnswers++;
+
+    } else {
+
+      nextLine += '☠';
+
+    }
+
+    nextLine += '</span>';
+
+    nextLine += '<br>';
+
+    document.getElementById('resultDiv').innerHTML += nextLine;
+
+  }
+
+  document.getElementById('resultDiv').innerHTML += '<br><br>';
+
+  document.getElementById('resultDiv').innerHTML += fantasyAppraisals[ rightAnswers ];
+
+  replaceContent( document.getElementById('resultDiv').innerHTML );
+
+
+}
+
+function ensureUniqueIncidentals(quiz) {
+    const usedNumbers = new Set();
+
+    // First, add existing numbers to the set
+    quiz.forEach(q => usedNumbers.add(q.incidental));
+
+    // Function to get a unique random number
+    function getUniqueNumber() {
+        let num;
+        do {
+            num = Math.floor(Math.random() * 98); // Generates 0 to 97
+        } while (usedNumbers.has(num)); // Ensure uniqueness
+        usedNumbers.add(num);
+        return num;
+    }
+
+    // Check for duplicates and replace them
+    const seen = new Set();
+    quiz.forEach(q => {
+        if (seen.has(q.incidental)) {
+            q.incidental = getUniqueNumber();
+        }
+        seen.add(q.incidental);
+    });
+}
+
+
+
+</script>
+
+
+
+<body onload='initApp()'>
+
+<img src='art/pointer.png' id='selectedAnswerPointer' class='selectedAnswerPointer'>
+
+<div id='instructions'>
+
+  Click on the answer you like or use the keys 1-4 to select. Click the arrows to navigate between questions or use Return or Enter to move to the next question.
+
+</div>
+
+<div id='contentSpace'>
+
+
+</div>
+
+<div style='display:none'>
+
+  <div id='welcomeDiv' class='hidden'>
+    How well do you know The Fantasy Trip?
+  <br>
+  <br>
+
+
+  <div id='startButton' onclick='startQuiz()' class='medievalButton'>
+  Start Quiz
+  </div>
+<br>
+<img src='art/welcomeOrc.jpg' style='    width: 75%;  filter: sepia(100%);'>
+
+
+  </div>
+
+  <div id='questionDiv' class='hidden'>
+
+    <div id='question'>
+
+      <div class='questionText' id='questionText'>
+          question goes here
+        </div>
+
+        <div class='answer answer0' id='answer0' onclick='selectAnswer(0)'>
+          answer 0
+        </div>
+        <div class='answer answer1' id='answer1' onclick='selectAnswer(1)'>
+          answer 1
+        </div>
+        <div class='answer answer2' id='answer2' onclick='selectAnswer(2)'>
+          answer 2
+        </div>
+        <div class='answer answer3' id='answer3' onclick='selectAnswer(3)'>
+          answer 3
+        </div>
+
+        <div class='incidental' id='incidental'>
+          <img src='incidental/Unknown-65.png'>
+        </div>
+
+    </div>
+
+  </div>
+
+  <div id='resultDiv' class='hidden'>
+
+
+    result
+  </div>
+
+
+</div>
+
+<!-- <div class='hiddenDiv' id='screen0'>-0-</div>
+<div class='hiddenDiv' id='screen1'>-1-</div>
+<div class='hiddenDiv' id='screen2'>-2-</div>
+<div class='hiddenDiv' id='screen3'>-3-</div>
+<div class='hiddenDiv' id='screen4'>-4-</div>
+<div class='hiddenDiv' id='screen5'>-5-</div>
+<div class='hiddenDiv' id='screen6'>-6-</div>
+<div class='hiddenDiv' id='screen7'>-7-</div>
+<div class='hiddenDiv' id='screen8'>-8-</div>
+<div class='hiddenDiv' id='screen9'>-9-</div> -->
+
+<div id='navbar'>
+
+  <button class="arrow-button left" id='backButton' onclick="gotoQuestion(currentQuestion-1);">
+    <img src="art/Arrow1.png" alt="Left Arrow">
+  </button>
+
+  <button class="arrow-button right" id='forwardButton' onclick="gotoQuestion(currentQuestion+1);">
+    <img src="art/Arrow1.png" alt="Right Arrow">
+  </button>
+
+</div>
+
+</body>
+
+</html>
